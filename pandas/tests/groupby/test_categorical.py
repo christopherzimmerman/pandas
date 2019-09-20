@@ -52,7 +52,7 @@ def test_apply_use_categorical_name(df):
 
 
 def test_basic():
-
+    # TODO this should be split into multiple tests
     cats = Categorical(
         ["a", "a", "a", "b", "b", "b", "c", "c", "c"],
         categories=["a", "b", "c", "d"],
@@ -95,9 +95,10 @@ def test_basic():
         return x.drop_duplicates("person_name").iloc[0]
 
     result = g.apply(f)
-    expected = x.iloc[[0, 1]].copy()
+    expected = x[["person_name"]].iloc[[0, 1]].copy()
     expected.index = Index([1, 2], name="person_id")
-    expected["person_name"] = expected["person_name"].astype("object")
+    expected["person_name"] = expected["person_name"]
+    print(expected)
     tm.assert_frame_equal(result, expected)
 
     # GH 9921

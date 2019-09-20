@@ -100,12 +100,19 @@ def test_builtins_apply(keys, f):
 
     fname = f.__name__
     result = df.groupby(keys).apply(f)
+
     ngroups = len(df.drop_duplicates(subset=keys))
 
-    assert_msg = "invalid frame shape: {} (expected ({}, 3))".format(
-        result.shape, ngroups
+    # GH 28549
+    if isinstance(keys, list):
+        num_cols = len(df.columns) - len(keys)
+    else:
+        num_cols = len(df.columns) - 1
+
+    assert_msg = "invalid frame shape: {} (expected ({}, {}))".format(
+        result.shape, ngroups, num_cols
     )
-    assert result.shape == (ngroups, 3), assert_msg
+    assert result.shape == (ngroups, num_cols), assert_msg
 
     tm.assert_frame_equal(
         result,  # numpy's equivalent function
@@ -113,11 +120,10 @@ def test_builtins_apply(keys, f):
     )
 
     if f != sum:
-        expected = df.groupby(keys).agg(fname).reset_index()
-        expected.set_index(keys, inplace=True, drop=False)
+        expected = df.groupby(keys).agg(fname)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
-    tm.assert_series_equal(getattr(result, fname)(), getattr(df, fname)())
+    tm.assert_series_equal(getattr(result, fname)(), getattr(df.drop(keys, 1), fname)())
 
 
 def test_arg_passthru():
@@ -342,10 +348,10 @@ def test_cython_api2():
 
     # GH 13994
     result = df.groupby("A").cumsum(axis=1)
-    expected = df.cumsum(axis=1)
+    expected = df.drop("A", 1).cumsum(axis=1)
     tm.assert_frame_equal(result, expected)
     result = df.groupby("A").cumprod(axis=1)
-    expected = df.cumprod(axis=1)
+    expected = df.drop("A", 1).cumprod(axis=1)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1107,7 +1113,8 @@ def test_count():
 
     for key in ["1st", "2nd", ["1st", "2nd"]]:
         left = df.groupby(key).count()
-        right = df.groupby(key).apply(DataFrame.count).drop(key, axis=1)
+        # GH 28549
+        right = df.groupby(key).apply(DataFrame.count)
         tm.assert_frame_equal(left, right)
 
 
