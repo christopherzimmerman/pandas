@@ -478,7 +478,8 @@ def test_transform_mixed_type():
     # this is by definition a mutating operation!
     with pd.option_context("mode.chained_assignment", None):
         for key, group in grouped:
-            res = f(group)
+            # GH 28549 "c" will no longer be in group
+            res = f(group).drop("c", 1)
             assert_frame_equal(res, result.loc[key])
 
 
